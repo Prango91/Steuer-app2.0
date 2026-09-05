@@ -1,0 +1,2198 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Steuer-Manager & Nebenkosten V2</title>
+
+<style>
+:root{
+  --bg:#f5f5f7;
+  --card:#fff;
+  --text:#1d1d1f;
+  --muted:#6e6e73;
+  --line:#e5e5ea;
+  --accent:#007aff;
+  --good:#34c759;
+  --warn:#ff9500;
+  --bad:#ff3b30;
+  --radius:18px
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:15px -apple-system,BlinkMacSystemFont,
+  "SF Pro Text","Helvetica Neue",Arial,sans-serif
+}
+
+header{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:rgba(245,245,247,.9);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);
+  padding:14px max(16px,env(safe-area-inset-left))
+}
+
+h1{font-size:22px;margin:0 0 10px}
+h2{font-size:20px;margin:0 0 14px}
+h3{font-size:16px;margin:18px 0 8px}
+
+.wrap{
+  max-width:1100px;
+  margin:auto;
+  padding:18px 16px 60px
+}
+
+.tabs{
+  display:flex;
+  gap:8px;
+  overflow:auto;
+  padding-bottom:4px
+}
+
+.tab{
+  border:0;
+  border-radius:12px;
+  background:#e8e8ed;
+  padding:9px 13px;
+  white-space:nowrap
+}
+
+.tab.active{
+  background:#1d1d1f;
+  color:#fff
+}
+
+section{display:none}
+.active-section{display:block}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 2px 10px rgba(0,0,0,.03)
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px
+}
+
+.metric{
+  padding:14px;
+  border-radius:14px;
+  background:#f2f2f7
+}
+
+.metric b{
+  display:block;
+  font-size:22px;
+  margin-top:5px
+}
+
+label{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin:10px 0 5px
+}
+
+input,select,textarea{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid #d1d1d6;
+  border-radius:11px;
+  background:#fff;
+  font:inherit
+}
+
+textarea{min-height:80px}
+
+button{
+  border:0;
+  border-radius:11px;
+  padding:10px 14px;
+  font:inherit;
+  cursor:pointer;
+  background:#e8e8ed
+}
+
+.primary{
+  background:var(--accent);
+  color:#fff
+}
+
+.danger{
+  background:#ffe5e3;
+  color:#b42318
+}
+
+.small{
+  font-size:12px;
+  color:var(--muted)
+}
+
+.row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center
+}
+
+.right{margin-left:auto}
+
+table{
+  width:100%;
+  border-collapse:collapse
+}
+
+th,td{
+  text-align:left;
+  padding:9px 6px;
+  border-bottom:1px solid var(--line);
+  vertical-align:top
+}
+
+th{
+  font-size:12px;
+  color:var(--muted)
+}
+
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#eee;
+  font-size:12px
+}
+
+.good{
+  background:#dcf8e3;
+  color:#187a34
+}
+
+.warn{
+  background:#fff0d8;
+  color:#9a5a00
+}
+
+.empty{
+  text-align:center;
+  padding:24px;
+  color:var(--muted)
+}
+
+.notice{
+  padding:12px;
+  border-radius:12px;
+  background:#eef6ff;
+  color:#145da0;
+  margin:10px 0
+}
+
+.hidden{display:none}
+
+@media(max-width:700px){
+  table{font-size:13px}
+  .desktop{display:none}
+  th,td{padding:8px 4px}
+  .wrap{
+    padding-left:12px;
+    padding-right:12px
+  }
+}
+
+@media print{
+  header,.tabs,.no-print{
+    display:none!important
+  }
+
+  section{
+    display:block!important
+  }
+
+  .card{
+    box-shadow:none;
+    border:1px solid #ccc
+  }
+
+  .wrap{
+    max-width:none
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="wrap" style="padding:0">
+
+<h1>
+Steuer-Manager & Nebenkosten
+<span class="badge">V2</span>
+</h1>
+
+<div class="row">
+
+<label style="margin:0;width:130px">
+<span>Steuerjahr</span>
+<select id="year"></select>
+</label>
+
+<button class="primary" onclick="backup()">
+Backup exportieren
+</button>
+
+<button onclick="document.getElementById('restore').click()">
+Backup importieren
+</button>
+
+<input
+id="restore"
+class="hidden"
+type="file"
+accept=".json"
+onchange="restoreBackup(event)"
+>
+
+</div>
+</div>
+</header>
+
+
+<main class="wrap">
+
+<div class="tabs no-print">
+
+<button class="tab active" data-tab="dashboard">
+Übersicht
+</button>
+
+<button class="tab" data-tab="wohnungen">
+Wohnungen
+</button>
+
+<button class="tab" data-tab="mieter">
+Mieter & Verträge
+</button>
+
+<button class="tab" data-tab="belege">
+Belege
+</button>
+
+<button class="tab" data-tab="fahrten">
+Fahrten
+</button>
+
+<button class="tab" data-tab="nebenkosten">
+Nebenkosten
+</button>
+
+<button class="tab" data-tab="checkliste">
+Steuer-Check
+</button>
+
+<button class="tab" data-tab="abschluss">
+Jahresabschluss
+</button>
+
+</div>
+
+
+<!-- DASHBOARD -->
+
+<section id="dashboard" class="active-section">
+
+<div class="card">
+
+<h2>
+Steuerjahr <span id="dashYear"></span>
+</h2>
+
+<div class="grid" id="metrics"></div>
+
+</div>
+
+
+<div class="card">
+
+<h3>Schnellzugriff</h3>
+
+<div class="row">
+
+<button
+class="primary"
+onclick="openTab('belege')">
++ Beleg
+</button>
+
+<button
+onclick="openTab('fahrten')">
++ Fahrt
+</button>
+
+<button
+onclick="openTab('wohnungen')">
+Wohnung anlegen
+</button>
+
+<button
+onclick="openTab('nebenkosten')">
+Abrechnung
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- WOHNUNGEN -->
+
+<section id="wohnungen">
+
+<div class="card">
+
+<h2>Wohnungen / Einheiten</h2>
+
+<div class="notice">
+
+Hier legst du flexibel fest, welche Einheiten selbst genutzt,
+vermietet oder zeitweise genutzt werden. Die Wohnfläche und der
+Status werden nicht mehr im Code fest verdrahtet.
+
+</div>
+
+<div id="units"></div>
+
+<hr>
+
+<h3>Neue Einheit</h3>
+
+<div class="grid">
+
+<div>
+<label>Bezeichnung</label>
+<input id="uName" placeholder="z. B. EG">
+</div>
+
+<div>
+<label>Wohnfläche (m²)</label>
+<input id="uArea" type="number" step=".01">
+</div>
+
+<div>
+<label>Nutzungsart</label>
+
+<select id="uUse">
+
+<option value="self">
+Selbst genutzt
+</option>
+
+<option value="rent">
+Vermietet
+</option>
+
+<option value="mixed">
+Gemischt / zeitweise
+</option>
+
+</select>
+
+</div>
+
+<div>
+
+<label>Umlageschlüssel</label>
+
+<select id="uKey">
+
+<option value="area">
+Wohnfläche
+</option>
+
+<option value="persons">
+Personen
+</option>
+
+<option value="consumption">
+Verbrauch
+</option>
+
+<option value="direct">
+Direktzuordnung
+</option>
+
+</select>
+
+</div>
+
+</div>
+
+<button
+class="primary"
+onclick="addUnit()">
+
+Einheit speichern
+
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- MIETER -->
+
+<section id="mieter">
+
+<div class="card">
+
+<h2>Mieter & Mietverträge</h2>
+
+<div id="tenants"></div>
+
+<h3>Neuer Mietvertrag</h3>
+
+<div class="grid">
+
+<div>
+<label>Mieter</label>
+<input id="tName">
+</div>
+
+<div>
+<label>Adresse des Mieters</label>
+<input id="tAddr">
+</div>
+
+<div>
+<label>Wohnung</label>
+<select id="tUnit"></select>
+</div>
+
+<div>
+<label>Beginn</label>
+<input id="tStart" type="date">
+</div>
+
+<div>
+<label>Ende (optional)</label>
+<input id="tEnd" type="date">
+</div>
+
+<div>
+<label>Kaltmiete / Monat (€)</label>
+<input id="tRent" type="number" step=".01">
+</div>
+
+<div>
+<label>Betriebskostenvorauszahlung / Monat (€)</label>
+<input id="tAdvance" type="number" step=".01">
+</div>
+
+</div>
+
+<button
+class="primary"
+onclick="addTenant()">
+
+Vertrag speichern
+
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- BELEGE -->
+
+<section id="belege">
+
+<div class="card">
+
+<h2>Belege & Ausgaben</h2>
+
+<div id="receipts"></div>
+
+<h3>Beleg erfassen</h3>
+
+<div class="grid">
+
+<div>
+<label>Datum</label>
+<input id="rDate" type="date">
+</div>
+
+<div>
+<label>Beschreibung</label>
+<input id="rDesc">
+</div>
+
+<div>
+<label>Betrag (€)</label>
+<input id="rAmount" type="number" step=".01">
+</div>
+
+<div>
+
+<label>Kategorie</label>
+
+<select id="rCat">
+
+<option>Reparatur/Instandhaltung</option>
+<option>Hausverwaltung</option>
+<option>Versicherung</option>
+<option>Grundsteuer</option>
+<option>Wasser/Abwasser</option>
+<option>Heizung</option>
+<option>Strom</option>
+<option>Reinigung</option>
+<option>Garten</option>
+<option>Arbeitskosten / Handwerker</option>
+<option>Büro/Telefon</option>
+<option>Sonstiges</option>
+
+</select>
+
+</div>
+
+<div>
+<label>Wohnung</label>
+<select id="rUnit"></select>
+</div>
+
+<div>
+<label>Arbeitskosten (€)</label>
+<input
+id="rLabor"
+type="number"
+step=".01"
+value="0">
+</div>
+
+<div>
+
+<label>Steuerlich absetzbar?</label>
+
+<select id="rTax">
+
+<option value="yes">Ja</option>
+<option value="no">Nein</option>
+
+</select>
+
+</div>
+
+<div>
+
+<label>Auf Mieter umlegbar?</label>
+
+<select id="rRecover">
+
+<option value="yes">Ja</option>
+<option value="no">Nein</option>
+
+</select>
+
+</div>
+
+<div>
+
+<label>§35a relevant?</label>
+
+<select id="r35a">
+
+<option value="no">Nein</option>
+<option value="yes">Ja</option>
+
+</select>
+
+</div>
+
+</div>
+
+<button
+class="primary"
+onclick="addReceipt()">
+
+Beleg speichern
+
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- FAHRTEN -->
+
+<section id="fahrten">
+
+<div class="card">
+
+<h2>Fahrtenbuch</h2>
+
+<div id="drives"></div>
+
+<h3>Fahrt erfassen</h3>
+
+<div class="grid">
+
+<div>
+<label>Datum</label>
+<input id="dDate" type="date">
+</div>
+
+<div>
+<label>Start</label>
+<input id="dStart">
+</div>
+
+<div>
+<label>Ziel</label>
+<input id="dEnd">
+</div>
+
+<div>
+<label>Kilometer</label>
+<input id="dKm" type="number" step=".1">
+</div>
+
+<div>
+<label>Zweck</label>
+<input
+id="dPurpose"
+placeholder="z. B. Objektbesichtigung">
+</div>
+
+<div>
+<label>Fahrzeug / Notiz</label>
+<input id="dNote">
+</div>
+
+</div>
+
+<div class="notice">
+
+Die Kilometer können manuell eingetragen und korrigiert werden.
+Eine steuerliche Kilometerpauschale ist hier bewusst nur eine
+Berechnungsgröße – keine automatische „Erstattung“.
+
+</div>
+
+<button
+class="primary"
+onclick="addDrive()">
+
+Fahrt speichern
+
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- NEBENKOSTEN -->
+
+<section id="nebenkosten">
+
+<div class="card">
+
+<h2>Betriebskostenabrechnung</h2>
+
+<div class="notice">
+
+Die Abrechnung wird aus den gespeicherten Wohnungen,
+Mietverträgen und als „auf Mieter umlegbar“ markierten Belegen
+erzeugt. Das Ergebnis ist ein Entwurf und sollte mit Mietvertrag
+und den geltenden Regeln abgeglichen werden.
+
+</div>
+
+<div class="grid">
+
+<div>
+
+<label>Wohnung</label>
+<select id="billUnit"></select>
+
+</div>
+
+<div>
+
+<label>Abrechnungszeitraum von</label>
+<input id="bFrom" type="date">
+
+</div>
+
+<div>
+
+<label>bis</label>
+<input id="bTo" type="date">
+
+</div>
+
+</div>
+
+<button
+class="primary"
+onclick="generateBill()">
+
+Abrechnung erstellen
+
+</button>
+
+<div id="bill" style="margin-top:15px"></div>
+
+</div>
+
+</section>
+
+
+
+<!-- CHECKLISTE -->
+
+<section id="checkliste">
+
+<div class="card">
+
+<h2>Steuer-Checkliste</h2>
+
+<div id="checks"></div>
+
+<div class="row">
+
+<input
+id="newCheck"
+placeholder="Neuer Punkt"
+style="max-width:500px">
+
+<button
+class="primary"
+onclick="addCheck()">
+
+Hinzufügen
+
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- JAHRESABSCHLUSS -->
+
+<section id="abschluss">
+
+<div class="card">
+
+<h2>
+Jahresabschluss
+<span id="closeYear"></span>
+</h2>
+
+<div id="summary"></div>
+
+</div>
+
+<div class="card no-print">
+
+<h3>Hinweis</h3>
+
+<p class="small">
+
+Die V2 ist ein Organisations- und Rechenwerkzeug.
+Steuerliche Einordnung, Umlagefähigkeit und §35a-Voraussetzungen
+sollten anhand der konkreten Unterlagen geprüft werden.
+
+</p>
+
+</div>
+
+</section>
+
+</main>
+
+
+
+<script>
+
+const KEY="steuerManagerV2";
+
+let db=
+JSON.parse(localStorage.getItem(KEY)||'null')
+||
+{
+  units:[],
+  tenants:[],
+  receipts:[],
+  drives:[],
+  checks:[]
+};
+
+let year=new Date().getFullYear();
+
+const $=id=>document.getElementById(id);
+
+
+function save(){
+
+localStorage.setItem(
+KEY,
+JSON.stringify(db)
+);
+
+renderAll();
+
+}
+
+
+function esc(v){
+
+return String(v??"").replace(
+/[&<>"']/g,
+c=>({
+"&":"&amp;",
+"<":"&lt;",
+">":"&gt;",
+'"':"&quot;",
+"'":"&#039;"
+}[c])
+);
+
+}
+
+
+function money(n){
+
+return (Number(n)||0).toLocaleString(
+"de-DE",
+{
+style:"currency",
+currency:"EUR"
+}
+);
+
+}
+
+
+function uid(){
+
+return Date.now().toString(36)
++
+Math.random().toString(36).slice(2);
+
+}
+
+
+function openTab(id){
+
+document
+.querySelectorAll(".tab")
+.forEach(
+b=>b.classList.toggle(
+"active",
+b.dataset.tab===id
+)
+);
+
+document
+.querySelectorAll("section")
+.forEach(
+s=>s.classList.toggle(
+"active-section",
+s.id===id
+)
+);
+
+}
+
+
+document
+.querySelectorAll(".tab")
+.forEach(
+b=>b.onclick=()=>openTab(b.dataset.tab)
+);
+
+
+for(
+let y=new Date().getFullYear();
+y>=new Date().getFullYear()-5;
+y--
+){
+
+let o=document.createElement("option");
+
+o.value=y;
+o.textContent=y;
+
+$("year").appendChild(o);
+
+}
+
+$("year").value=year;
+
+$("year").onchange=e=>{
+
+year=+e.target.value;
+
+renderAll();
+
+};
+
+
+
+function addUnit(){
+
+let name=$("uName").value.trim();
+
+let area=+$("uArea").value;
+
+if(!name||area<=0)
+
+return alert(
+"Bitte Bezeichnung und Wohnfläche eingeben."
+);
+
+db.units.push({
+
+id:uid(),
+name,
+area,
+use:$("uUse").value,
+key:$("uKey").value
+
+});
+
+$("uName").value="";
+$("uArea").value="";
+
+save();
+
+}
+
+
+
+function del(type,id){
+
+if(
+confirm("Eintrag wirklich löschen?")
+){
+
+db[type]=db[type].filter(
+x=>x.id!==id
+);
+
+save();
+
+}
+
+}
+
+
+
+function editUnit(id){
+
+let u=db.units.find(
+x=>x.id===id
+);
+
+let n=prompt(
+"Bezeichnung",
+u.name
+);
+
+if(n!==null)
+u.name=n;
+
+let a=prompt(
+"Wohnfläche in m²",
+u.area
+);
+
+if(a!==null&&+a>0)
+u.area=+a;
+
+u.use=
+prompt(
+"Nutzung: self / rent / mixed",
+u.use
+)
+||
+u.use;
+
+save();
+
+}
+
+
+
+function addTenant(){
+
+let x={
+
+id:uid(),
+
+name:$("tName").value.trim(),
+
+addr:$("tAddr").value.trim(),
+
+unit:$("tUnit").value,
+
+start:$("tStart").value,
+
+end:$("tEnd").value,
+
+rent:+$("tRent").value||0,
+
+advance:+$("tAdvance").value||0
+
+};
+
+if(!x.name||!x.unit)
+
+return alert(
+"Mieter und Wohnung angeben."
+);
+
+db.tenants.push(x);
+
+save();
+
+}
+
+
+
+function addReceipt(){
+
+let x={
+
+id:uid(),
+
+year,
+
+date:$("rDate").value,
+
+desc:$("rDesc").value.trim(),
+
+amount:+$("rAmount").value||0,
+
+cat:$("rCat").value,
+
+unit:$("rUnit").value,
+
+labor:+$("rLabor").value||0,
+
+tax:$("rTax").value,
+
+recover:$("rRecover").value,
+
+is35a:$("r35a").value
+
+};
+
+if(!x.amount)
+
+return alert(
+"Bitte Betrag eingeben."
+);
+
+db.receipts.push(x);
+
+save();
+
+}
+
+
+
+function addDrive(){
+
+let x={
+
+id:uid(),
+
+year,
+
+date:$("dDate").value,
+
+start:$("dStart").value,
+
+end:$("dEnd").value,
+
+km:+$("dKm").value||0,
+
+purpose:$("dPurpose").value,
+
+note:$("dNote").value
+
+};
+
+if(!x.km)
+
+return alert(
+"Bitte Kilometer eingeben."
+);
+
+db.drives.push(x);
+
+save();
+
+}
+
+
+
+function addCheck(){
+
+let v=$("newCheck").value.trim();
+
+if(!v)return;
+
+db.checks.push({
+
+id:uid(),
+text:v,
+done:false
+
+});
+
+$("newCheck").value="";
+
+save();
+
+}
+
+
+
+function toggleCheck(id){
+
+let x=db.checks.find(
+x=>x.id===id
+);
+
+x.done=!x.done;
+
+save();
+
+}
+
+
+
+function unitName(id){
+
+return db.units.find(
+x=>x.id===id
+)?.name
+||
+"—";
+
+}
+
+
+
+function renderUnits(){
+
+$("units").innerHTML=
+
+db.units.length
+
+?
+
+db.units.map(
+u=>`
+
+<div class="card">
+
+<div class="row">
+
+<b>${esc(u.name)}</b>
+
+<span class="badge">
+${u.area} m²
+</span>
+
+<span class="badge">
+
+${
+u.use==="rent"
+?
+"vermietet"
+:
+u.use==="self"
+?
+"selbst genutzt"
+:
+"gemischt/zeitweise"
+}
+
+</span>
+
+<span class="badge">
+
+${
+u.key==="area"
+?
+"Wohnfläche"
+:
+u.key==="persons"
+?
+"Personen"
+:
+u.key==="consumption"
+?
+"Verbrauch"
+:
+"Direktzuordnung"
+}
+
+</span>
+
+<span class="right">
+
+<button
+onclick="editUnit('${u.id}')">
+
+Bearbeiten
+
+</button>
+
+<button
+class="danger"
+onclick="del('units','${u.id}')">
+
+Löschen
+
+</button>
+
+</span>
+
+</div>
+
+</div>
+
+`
+).join("")
+
+:
+
+`<div class="empty">
+Noch keine Wohnungen angelegt.
+</div>`;
+
+}
+
+
+
+function fillUnitSelects(){
+
+[
+"tUnit",
+"rUnit",
+"billUnit"
+]
+.forEach(id=>{
+
+let s=$(id);
+
+if(!s)return;
+
+let old=s.value;
+
+s.innerHTML=
+'<option value="">— auswählen —</option>'
++
+db.units.map(
+u=>
+`
+<option value="${u.id}">
+${esc(u.name)} · ${u.area} m²
+</option>
+`
+).join("");
+
+if(
+[...s.options]
+.some(o=>o.value===old)
+)
+s.value=old;
+
+});
+
+}
+
+
+
+function renderTenants(){
+
+$("tenants").innerHTML=
+
+db.tenants.length
+
+?
+
+`
+<table>
+
+<tr>
+<th>Mieter</th>
+<th>Wohnung</th>
+<th>Zeitraum</th>
+<th>Miete</th>
+<th></th>
+</tr>
+
+${
+
+db.tenants.map(
+t=>
+`
+<tr>
+
+<td>
+
+<b>${esc(t.name)}</b>
+
+<br>
+
+<span class="small">
+${esc(t.addr)}
+</span>
+
+</td>
+
+<td>
+${esc(unitName(t.unit))}
+</td>
+
+<td>
+${t.start||"—"}
+–
+${t.end||"offen"}
+</td>
+
+<td>
+${money(t.rent)}
++
+${money(t.advance)}
+NK
+</td>
+
+<td>
+
+<button
+class="danger"
+onclick="del('tenants','${t.id}')">
+
+Löschen
+
+</button>
+
+</td>
+
+</tr>
+`
+).join("")
+
+}
+
+</table>
+`
+
+:
+
+`
+<div class="empty">
+Noch kein Mietvertrag hinterlegt.
+</div>
+`;
+
+}
+
+
+
+function renderReceipts(){
+
+let a=db.receipts.filter(
+x=>+x.year===year
+);
+
+$("receipts").innerHTML=
+
+a.length
+
+?
+
+`
+<table>
+
+<tr>
+<th>Datum</th>
+<th>Beleg</th>
+<th>Wohnung</th>
+<th>Betrag</th>
+<th>Eigenschaften</th>
+<th></th>
+</tr>
+
+${
+
+a.map(
+r=>
+`
+<tr>
+
+<td>
+${esc(r.date)}
+</td>
+
+<td>
+
+${esc(r.desc)}
+
+<br>
+
+<span class="small">
+${esc(r.cat)}
+</span>
+
+</td>
+
+<td>
+${esc(unitName(r.unit))}
+</td>
+
+<td>
+
+${money(r.amount)}
+
+<br>
+
+<span class="small">
+Arbeitskosten ${money(r.labor)}
+</span>
+
+</td>
+
+<td>
+
+${
+r.tax==="yes"
+?
+"<span class='badge good'>Steuer</span>"
+:
+""
+}
+
+${
+r.recover==="yes"
+?
+"<span class='badge warn'>umlegbar</span>"
+:
+""
+}
+
+${
+r.is35a==="yes"
+?
+"<span class='badge'>§35a</span>"
+:
+""
+}
+
+</td>
+
+<td>
+
+<button
+class="danger"
+onclick="del('receipts','${r.id}')">
+
+Löschen
+
+</button>
+
+</td>
+
+</tr>
+`
+).join("")
+
+}
+
+</table>
+`
+
+:
+
+`
+<div class="empty">
+Keine Belege für ${year}.
+</div>
+`;
+
+}
+
+
+
+function renderDrives(){
+
+let a=db.drives.filter(
+x=>+x.year===year
+);
+
+$("drives").innerHTML=
+
+a.length
+
+?
+
+`
+<table>
+
+<tr>
+<th>Datum</th>
+<th>Route</th>
+<th>km</th>
+<th>Zweck</th>
+<th></th>
+</tr>
+
+${
+
+a.map(
+d=>
+`
+<tr>
+
+<td>
+${esc(d.date)}
+</td>
+
+<td>
+${esc(d.start)}
+→
+${esc(d.end)}
+</td>
+
+<td>
+${d.km.toFixed(1)}
+</td>
+
+<td>
+${esc(d.purpose)}
+</td>
+
+<td>
+
+<button
+class="danger"
+onclick="del('drives','${d.id}')">
+
+Löschen
+
+</button>
+
+</td>
+
+</tr>
+`
+).join("")
+
+}
+
+</table>
+`
+
+:
+
+`
+<div class="empty">
+Keine Fahrten für ${year}.
+</div>
+`;
+
+}
+
+
+
+function renderChecks(){
+
+$("checks").innerHTML=
+
+db.checks.length
+
+?
+
+db.checks.map(
+c=>
+`
+<div
+class="row"
+style="padding:9px 0;border-bottom:1px solid var(--line)">
+
+<input
+type="checkbox"
+style="width:auto"
+${c.done?"checked":""}
+onchange="toggleCheck('${c.id}')">
+
+<span
+style="${
+c.done
+?
+'text-decoration:line-through;color:#777'
+:
+''
+}">
+
+${esc(c.text)}
+
+</span>
+
+<button
+class="danger right"
+onclick="del('checks','${c.id}')">
+
+Löschen
+
+</button>
+
+</div>
+`
+).join("")
+
+:
+
+`
+<div class="empty">
+Checkliste ist leer.
+</div>
+`;
+
+}
+
+
+
+function renderDashboard(){
+
+let rs=db.receipts.filter(
+x=>+x.year===year
+);
+
+let ds=db.drives.filter(
+x=>+x.year===year
+);
+
+let expense=
+rs.reduce(
+(s,x)=>s+x.amount,
+0
+);
+
+let tax=
+rs
+.filter(x=>x.tax==="yes")
+.reduce(
+(s,x)=>s+x.amount,
+0
+);
+
+let recover=
+rs
+.filter(x=>x.recover==="yes")
+.reduce(
+(s,x)=>s+x.amount,
+0
+);
+
+let km=
+ds.reduce(
+(s,x)=>s+x.km,
+0
+);
+
+$("dashYear").textContent=year;
+
+$("metrics").innerHTML=
+
+[
+["Belege",rs.length],
+["Ausgaben",money(expense)],
+["steuerlich markiert",money(tax)],
+["umlegbare Kosten",money(recover)],
+["Fahrten",km.toFixed(1)+" km"],
+["Wohnungen",db.units.length]
+]
+
+.map(
+x=>
+`
+<div class="metric">
+
+<span>
+${x[0]}
+</span>
+
+<b>
+${x[1]}
+</b>
+
+</div>
+`
+).join("");
+
+}
+
+
+
+function generateBill(){
+
+let unit=$("billUnit").value;
+
+if(!unit)
+
+return alert(
+"Wohnung auswählen."
+);
+
+let from=$("bFrom").value;
+
+let to=$("bTo").value;
+
+let u=db.units.find(
+x=>x.id===unit
+);
+
+let t=db.tenants.find(
+x=>x.unit===unit
+);
+
+let costs=
+
+db.receipts.filter(
+r=>
+
++r.year===year
+&&
+r.unit===unit
+&&
+r.recover==="yes"
+&&
+(!from||r.date>=from)
+&&
+(!to||r.date<=to)
+);
+
+let total=
+
+costs.reduce(
+(s,x)=>s+x.amount,
+0
+);
+
+let months=
+
+from&&to
+?
+monthsBetween(from,to)
+:
+12;
+
+let advance=
+(t?.advance||0)*months;
+
+let result=
+advance-total;
+
+$("bill").innerHTML=
+
+`
+<div class="card">
+
+<h2>
+Betriebskostenabrechnung – Entwurf
+</h2>
+
+<p>
+
+<b>Einheit:</b>
+${esc(u.name)}
+(${u.area} m²)
+
+<br>
+
+<b>Mieter:</b>
+${esc(t?.name||"Kein Mietvertrag hinterlegt")}
+
+</p>
+
+<table>
+
+<tr>
+<th>Kostenart</th>
+<th>Betrag</th>
+</tr>
+
+${
+costs.map(
+c=>
+`
+<tr>
+
+<td>
+${esc(c.cat)}
+–
+${esc(c.desc)}
+</td>
+
+<td>
+${money(c.amount)}
+</td>
+
+</tr>
+`
+).join("")
+}
+
+<tr>
+
+<th>
+Umlagefähige Kosten gesamt
+</th>
+
+<th>
+${money(total)}
+</th>
+
+</tr>
+
+<tr>
+
+<td>
+Vorauszahlungen (${months} Monate)
+</td>
+
+<td>
+${money(advance)}
+</td>
+
+</tr>
+
+<tr>
+
+<th>
+${result>=0?"Guthaben":"Nachzahlung"}
+</th>
+
+<th>
+${money(Math.abs(result))}
+</th>
+
+</tr>
+
+</table>
+
+<br>
+
+<button onclick="window.print()">
+Drucken / PDF
+</button>
+
+</div>
+`;
+
+}
+
+
+
+function monthsBetween(a,b){
+
+let x=new Date(a);
+
+let y=new Date(b);
+
+return Math.max(
+1,
+(y.getFullYear()-x.getFullYear())*12
++
+y.getMonth()-x.getMonth()
++
+1
+);
+
+}
+
+
+
+function renderSummary(){
+
+let rs=db.receipts.filter(
+x=>+x.year===year
+);
+
+let ds=db.drives.filter(
+x=>+x.year===year
+);
+
+let tax=
+
+rs
+.filter(x=>x.tax==="yes")
+.reduce(
+(s,x)=>s+x.amount,
+0
+);
+
+let labor=
+
+rs
+.filter(x=>x.is35a==="yes")
+.reduce(
+(s,x)=>s+x.labor,
+0
+);
+
+let recover=
+
+rs
+.filter(x=>x.recover==="yes")
+.reduce(
+(s,x)=>s+x.amount,
+0
+);
+
+let km=
+
+ds.reduce(
+(s,x)=>s+x.km,
+0
+);
+
+$("closeYear").textContent=year;
+
+$("summary").innerHTML=
+
+`
+<table>
+
+<tr>
+<th>Kennzahl</th>
+<th>Wert</th>
+</tr>
+
+<tr>
+
+<td>
+Erfasste Ausgaben
+</td>
+
+<td>
+${money(
+rs.reduce(
+(s,x)=>s+x.amount,
+0
+)
+)}
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+Als steuerlich absetzbar markiert
+</td>
+
+<td>
+${money(tax)}
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+Davon erfasste §35a-Arbeitskosten
+</td>
+
+<td>
+${money(labor)}
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+Als umlegbar markiert
+</td>
+
+<td>
+${money(recover)}
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+Fahrten
+</td>
+
+<td>
+${km.toFixed(1)} km
+</td>
+
+</tr>
+
+</table>
+`;
+
+}
+
+
+
+function renderAll(){
+
+fillUnitSelects();
+
+renderUnits();
+
+renderTenants();
+
+renderReceipts();
+
+renderDrives();
+
+renderChecks();
+
+renderDashboard();
+
+renderSummary();
+
+}
+
+
+
+function backup(){
+
+let blob=new Blob(
+
+[
+JSON.stringify(
+{
+version:2,
+exported:new Date().toISOString(),
+data:db
+},
+null,
+2
+)
+],
+
+{
+type:"application/json"
+}
+
+);
+
+let a=document.createElement("a");
+
+a.href=
+URL.createObjectURL(blob);
+
+a.download=
+`steuer-manager-backup-${new Date().toISOString().slice(0,10)}.json`;
+
+a.click();
+
+URL.revokeObjectURL(a.href);
+
+}
+
+
+
+function restoreBackup(e){
+
+let f=e.target.files[0];
+
+if(!f)return;
+
+let r=new FileReader();
+
+r.onload=()=>{
+
+try{
+
+let x=JSON.parse(r.result);
+
+if(!x.data)
+throw Error();
+
+if(
+confirm(
+"Aktuelle Daten durch das Backup ersetzen?"
+)
+){
+
+db=x.data;
+
+save();
+
+}
+
+}
+
+catch{
+
+alert("Ungültiges Backup.");
+
+}
+
+};
+
+r.readAsText(f);
+
+}
+
+
+
+$("rDate").value=
+new Date()
+.toISOString()
+.slice(0,10);
+
+$("dDate").value=
+$("rDate").value;
+
+
+renderAll();
+
+</script>
+
+</body>
+</html>
