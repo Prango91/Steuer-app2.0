@@ -242,12 +242,39 @@ hr{
   margin:20px 0;
 }
 
-.pac-container {
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+/* OpenStreetMap Autocomplete Dropdown Styling */
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.autocomplete-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
   border: 1px solid var(--line);
-  font-family: inherit;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-height: 200px;
+  overflow-y: auto;
   z-index: 1000;
+  display: none;
+}
+
+.autocomplete-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover {
+  background: var(--bg);
 }
 
 @media(max-width:700px){
@@ -483,15 +510,8 @@ hr{
     <hr>
     <h3>Fahrt erfassen</h3>
 
-    <!-- Google Maps API Key Konfiguration -->
-    <div class="notice" style="margin-bottom:12px">
-      <div class="row">
-        <div style="flex:1">
-          <label style="margin:0">Google Maps API Key (für Autocomplete & KM-Berechnung)</label>
-          <input id="gmapsApiKey" placeholder="API-Schlüssel hier einfügen..." style="margin-top:4px">
-        </div>
-        <button class="primary" onclick="saveApiKey()" style="margin-top:18px">API Key Speichern</button>
-      </div>
+    <div class="notice">
+      <b>Kostenlose Kartennutzung via OpenStreetMap:</b> Adressvorschläge und Kilometerberechnungen werden automatisch ohne API-Key ermittelt.
     </div>
 
     <div class="grid">
@@ -499,17 +519,22 @@ hr{
         <label>Datum</label>
         <input id="dDate" type="date">
       </div>
-      <div>
+      
+      <div class="autocomplete-wrapper">
         <label>Startort</label>
-        <input id="dStart" placeholder="Wohnort (tippen für Vorschläge)">
+        <input id="dStart" placeholder="Adresse/Ort eingeben..." autocomplete="off">
+        <div id="dStartResults" class="autocomplete-results"></div>
       </div>
-      <div>
+      
+      <div class="autocomplete-wrapper">
         <label>Zielort</label>
-        <input id="dEnd" placeholder="Mietobjekt (tippen für Vorschläge)">
+        <input id="dEnd" placeholder="Adresse/Ort eingeben..." autocomplete="off">
+        <div id="dEndResults" class="autocomplete-results"></div>
       </div>
+      
       <div>
         <label>Strecke einfach (km)</label>
-        <input id="dKm" type="number" step="0.1" placeholder="Wird auto. berechnet">
+        <input id="dKm" type="number" step="0.1" placeholder="Auto-berechnet oder manuell">
       </div>
       <div>
         <label>Zweck der Fahrt</label>
@@ -525,7 +550,7 @@ hr{
     </div>
     <div style="margin-top:12px" class="row">
       <button class="primary" onclick="addDrive()">Fahrt speichern</button>
-      <button onclick="calculateDriveDistance()">Strecke manuell neu berechnen</button>
+      <button onclick="calculateOsmDistance()">Strecke neu berechnen</button>
     </div>
   </div>
 </section>
@@ -591,7 +616,6 @@ hr{
 const KEY = "steuerManagerV2_pro";
 
 let db = JSON.parse(localStorage.getItem(KEY) || 'null') || {
-  apiKey: "",
   units: [],
   tenants: [],
   receipts: [],
@@ -648,64 +672,71 @@ yearSelect.onchange = e => {
   renderAll();
 };
 
-/* --- GOOGLE MAPS & AUTOCOMPLETE INTEGRATION --- */
-let autocompleteStart, autocompleteEnd;
+/* --- OPENSTREETMAP AUTOCOMPLETE & ROUTING --- */
+let startCoords = null;
+let endCoords = null;
 
-function saveApiKey() {
-  let key = $("gmapsApiKey").value.trim();
-  db.apiKey = key;
-  save();
-  if(key) loadGoogleMapsScript(key);
-}
+function setupOsmAutocomplete(inputId, resultsId, setCoordsCallback) {
+  const input = $(inputId);
+  const resultsDiv = $(resultsId);
+  let debounceTimer;
 
-function loadGoogleMapsScript(key) {
-  if (!key || window.google?.maps) return;
-  const script = document.createElement("script");
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&callback=initGoogleMaps`;
-  script.async = true;
-  script.defer = true;
-  document.head.appendChild(script);
-}
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const query = input.value.trim();
+    if (query.length < 3) {
+      resultsDiv.style.display = "none";
+      return;
+    }
 
-function initGoogleMaps() {
-  const options = {
-    componentRestrictions: { country: "de" },
-    fields: ["formatted_address", "geometry"]
-  };
+    debounceTimer = setTimeout(() => {
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=de&limit=5`)
+        .then(res => res.json())
+        .then(data => {
+          resultsDiv.innerHTML = "";
+          if (data.length === 0) {
+            resultsDiv.style.display = "none";
+            return;
+          }
+          data.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "autocomplete-item";
+            div.textContent = item.display_name;
+            div.addEventListener("click", () => {
+              input.value = item.display_name;
+              setCoordsCallback({ lat: parseFloat(item.lat), lon: parseFloat(item.lon) });
+              resultsDiv.style.display = "none";
+              calculateOsmDistance();
+            });
+            resultsDiv.appendChild(div);
+          });
+          resultsDiv.style.display = "block";
+        })
+        .catch(() => { resultsDiv.style.display = "none"; });
+    }, 400);
+  });
 
-  const startInput = $("dStart");
-  const endInput = $("dEnd");
-
-  if (startInput && endInput) {
-    autocompleteStart = new google.maps.places.Autocomplete(startInput, options);
-    autocompleteEnd = new google.maps.places.Autocomplete(endInput, options);
-
-    autocompleteStart.addListener("place_changed", calculateDriveDistance);
-    autocompleteEnd.addListener("place_changed", calculateDriveDistance);
-  }
-}
-
-function calculateDriveDistance() {
-  const origin = $("dStart").value.trim();
-  const destination = $("dEnd").value.trim();
-
-  if (!origin || !destination || !window.google?.maps) return;
-
-  const service = new google.maps.DistanceMatrixService();
-  service.getDistanceMatrix({
-    origins: [origin],
-    destinations: [destination],
-    travelMode: google.maps.TravelMode.DRIVING,
-    unitSystem: google.maps.UnitSystem.METRIC
-  }, (response, status) => {
-    if (status === 'OK') {
-      const element = response.rows[0]?.elements[0];
-      if (element && element.status === 'OK') {
-        const distanceInKm = (element.distance.value / 1000).toFixed(1);
-        $("dKm").value = distanceInKm;
-      }
+  document.addEventListener("click", (e) => {
+    if (!input.contains(e.target) && !resultsDiv.contains(e.target)) {
+      resultsDiv.style.display = "none";
     }
   });
+}
+
+function calculateOsmDistance() {
+  if (!startCoords || !endCoords) return;
+
+  const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.lon},${startCoords.lat};${endCoords.lon},${endCoords.lat}?overview=false`;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (data.routes && data.routes.length > 0) {
+        const distanceKm = (data.routes[0].distance / 1000).toFixed(1);
+        $("dKm").value = distanceKm;
+      }
+    })
+    .catch(err => console.error("Routenberechnung fehlgeschlagen:", err));
 }
 
 /* --- WOHNUNGEN --- */
@@ -881,6 +912,8 @@ function addDrive() {
   $("dEnd").value = "";
   $("dKm").value = "";
   $("dPurpose").value = "";
+  startCoords = null;
+  endCoords = null;
   save();
 }
 
@@ -893,7 +926,6 @@ function delDrive(id) {
 
 function renderDrives() {
   let list = db.drives.filter(x => +x.year === year);
-  if ($("gmapsApiKey")) $("gmapsApiKey").value = db.apiKey || "";
 
   $("drives").innerHTML = list.length ? `
     <table>
@@ -1107,7 +1139,6 @@ function restoreBackup(e) {
       if (confirm("Möchtest du die aktuellen Daten komplett durch dieses Backup ersetzen?")) {
         db = x.data;
         save();
-        if(db.apiKey) loadGoogleMapsScript(db.apiKey);
       }
     } catch {
       alert("Ungültige Backup-Datei.");
@@ -1116,18 +1147,17 @@ function restoreBackup(e) {
   r.readAsText(f);
 }
 
-// Initial dates & API Init
+// Initial Setup
 document.addEventListener("DOMContentLoaded", () => {
   const today = new Date().toISOString().slice(0, 10);
   if ($("rDate")) $("rDate").value = today;
   if ($("dDate")) $("dDate").value = today;
   if ($("bFrom")) $("bFrom").value = year + "-01-01";
   if ($("bTo")) $("bTo").value = year + "-12-31";
-  
-  if (db.apiKey) {
-    loadGoogleMapsScript(db.apiKey);
-  }
-  
+
+  setupOsmAutocomplete("dStart", "dStartResults", coords => startCoords = coords);
+  setupOsmAutocomplete("dEnd", "dEndResults", coords => endCoords = coords);
+
   renderAll();
 });
 </script>
