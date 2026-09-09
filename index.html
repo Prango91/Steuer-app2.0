@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
@@ -225,6 +225,8 @@ tfoot td { background-color: var(--table-header) !important; font-weight: 600; b
 
 .fewo-badge { display: inline-block; background: var(--purple); color: white; font-size: 10px; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; margin-left: 6px; font-weight: bold; }
 
+.custom-input-box { margin-top: 6px; display: none; }
+
 @media screen and (min-width: 600px) {
   .flex-row > div { min-width: 220px; }
 }
@@ -316,7 +318,10 @@ tfoot td { background-color: var(--table-header) !important; font-weight: 600; b
       </div>
       <div>
         <label for="fwEinheit">Einheit / Fewo</label>
-        <select id="fwEinheit" class="unitSelectOnlyUnits"></select>
+        <select id="fwEinheit" class="unitSelectOnlyUnits" onchange="checkCustomOption(this, 'fwEinheitCustomBox')"></select>
+        <div id="fwEinheitCustomBox" class="custom-input-box">
+          <input type="text" id="fwEinheitCustom" placeholder="Eigene Einheit / Bezeichnung eingeben">
+        </div>
       </div>
     </div>
 
@@ -335,11 +340,15 @@ tfoot td { background-color: var(--table-header) !important; font-weight: 600; b
     <div class="flex-row">
       <div><label for="fwGebuehr">Portal-Gebühren / Provision (€)</label><input type="number" step="0.01" id="fwGebuehr" placeholder="z. B. 45.00 (Abzug)"></div>
       <div><label for="fwEigennutzung">Art der Belegung</label>
-        <select id="fwEigennutzung">
+        <select id="fwEigennutzung" onchange="checkCustomOption(this, 'fwEigennutzungCustomBox')">
           <option value="vermietung">Gästebuchung (Entgeltlich)</option>
           <option value="eigen">Eigennutzung / Privatnutzung</option>
           <option value="instandhaltung">Instandhaltung / Eigene Renovierung</option>
+          <option value="CUSTOM">✏️ Freie Texteingabe / Eigener Text...</option>
         </select>
+        <div id="fwEigennutzungCustomBox" class="custom-input-box">
+          <input type="text" id="fwEigennutzungCustom" placeholder="z. B. Freunde &amp; Familie / Testübernachtung">
+        </div>
       </div>
     </div>
 
@@ -414,16 +423,19 @@ Absetzbarer Betrag: 0.00 €
 </div>
 <div>
 <label for="bZuordnung">Zuordnung</label>
-<select id="bZuordnung" class="unitSelectOptions">
+<select id="bZuordnung" class="unitSelectOptions" onchange="checkCustomOption(this, 'bZuordnungCustomBox')">
 <!-- Dynamische Einheiten -->
 </select>
+<div id="bZuordnungCustomBox" class="custom-input-box">
+  <input type="text" id="bZuordnungCustom" placeholder="Eigene Zuordnung / Bereich eintragen">
+</div>
 </div>
 </div>
 
 <div class="flex-row">
 <div>
 <label for="bKategorie">Kategorie</label>
-<select id="bKategorie" onchange="toggleKategorieDetails()">
+<select id="bKategorie" onchange="toggleKategorieDetails(); checkCustomOption(this, 'bKategorieCustomBox');">
 <option>Instandhaltung / Reparatur (Sofortabzug)</option>
 <option value="Modernisierung">Modernisierung / Sanierung (§ 82b EStDV Verteilung)</option>
 <option value="Finanzierung">Finanzierung / Kreditzinsen (Schuldzinsen)</option>
@@ -436,7 +448,11 @@ Absetzbarer Betrag: 0.00 €
 <option>Verwaltung / Büro</option>
 <option>Telekommunikation / Handy</option>
 <option>Sonstiges</option>
+<option value="CUSTOM">✏️ Freie Texteingabe / Eigener Text...</option>
 </select>
+<div id="bKategorieCustomBox" class="custom-input-box">
+  <input type="text" id="bKategorieCustom" placeholder="Freie Kategoriebezeichnung eingeben">
+</div>
 </div>
 <div>
 <label for="bGeschaeft">Geschäft / Rechnungssteller / Bank</label>
@@ -498,23 +514,40 @@ Absetzbarer Betrag: 0.00 €
 <h2>Steuer-Checkliste &amp; Pauschalen (Anlage V / Anlage V-FeWo)</h2>
 <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Wähle absetzbare Posten aus. Entscheide zwischen der Richtwert-Pauschale oder trage deine tatsächlichen Kosten ein.</p>
 
+<div class="checklist-item" data-title="Heim-Internet / WLAN Anteil">
+<div class="checklist-header">1. Heim-Internet / WLAN zu Hause (Monatliche Rechnung)</div>
+<div class="checklist-sub">Anteilige Absetzung des heimischen DSL/Kabel-Internets für Vermietungsverwaltung &amp; Inseratspflege (empfohlen: 20 % bis 50 %).</div>
+<div class="flex-row">
+<div><label for="ck_net_monat">Monatliche Internet-Rechnung (€)</label><input type="number" id="ck_net_monat" value="40.00" oninput="calcInternet()"></div>
+<div><label for="ck_net_prozent">Beruflicher/Vermietungs-Anteil (%)</label><input type="number" id="ck_net_prozent" value="30" oninput="calcInternet()"></div>
+<div><label for="ck_net_val">Jahres-Abzug (€)</label><input type="number" step="0.01" id="ck_net_val" value="144.00" readonly></div>
+<div>
+<label for="ck_net_obj">Zuordnung</label>
+<select id="ck_net_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_net_objCustomBox')"></select>
+<div id="ck_net_objCustomBox" class="custom-input-box"><input type="text" id="ck_net_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
+</div>
+</div>
+<button type="button" onclick="addChecklistItem('Heim-Internet / WLAN Anteil', 'ck_net_val', 'ck_net_obj', 'Telekommunikation / Handy')">In Steuerbericht übernehmen</button>
+</div>
+
 <div class="checklist-item" data-title="Handytarif Anteil">
-<div class="checklist-header">1. Handytarif (Monatliche Rechnung)</div>
-<div class="checklist-sub">Anteilige Absetzung der monatlichen Grundgebühr (empfohlen: 20 % bis 50 %).</div>
+<div class="checklist-header">2. Handytarif (Monatliche Rechnung)</div>
+<div class="checklist-sub">Anteilige Absetzung der monatlichen Mobilfunk-Gebühr (empfohlen: 20 % bis 50 %).</div>
 <div class="flex-row">
 <div><label for="ck_handy_monat">Monatliche Rechnung (€)</label><input type="number" id="ck_handy_monat" value="30.00" oninput="calcHandy()"></div>
 <div><label for="ck_handy_prozent">Beruflicher Anteil (%)</label><input type="number" id="ck_handy_prozent" value="30" oninput="calcHandy()"></div>
 <div><label for="ck_handy_val">Jahres-Abzug (€)</label><input type="number" step="0.01" id="ck_handy_val" value="108.00" readonly></div>
 <div>
 <label for="ck_handy_obj">Zuordnung</label>
-<select id="ck_handy_obj" class="unitSelectOptions"></select>
+<select id="ck_handy_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_handy_objCustomBox')"></select>
+<div id="ck_handy_objCustomBox" class="custom-input-box"><input type="text" id="ck_handy_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
 </div>
 </div>
 <button type="button" onclick="addChecklistItem('Handytarif Anteil', 'ck_handy_val', 'ck_handy_obj', 'Telekommunikation / Handy')">In Steuerbericht übernehmen</button>
 </div>
 
 <div class="checklist-item" data-title="Smartphone Anschaffung Anteil">
-<div class="checklist-header">2. Smartphone-Neukauf (Anschaffung)</div>
+<div class="checklist-header">3. Smartphone-Neukauf (Anschaffung)</div>
 <div class="checklist-sub">Sofortabschreibung im Kaufjahr mit anteiligem Nutzungsprozentsatz.</div>
 <div class="flex-row">
 <div><label for="ck_kauf_preis">Kaufpreis brutto (€)</label><input type="number" id="ck_kauf_preis" placeholder="z. B. 800.00" oninput="calcKauf()"></div>
@@ -522,78 +555,114 @@ Absetzbarer Betrag: 0.00 €
 <div><label for="ck_kauf_val">Absetzbarer Betrag (€)</label><input type="number" step="0.01" id="ck_kauf_val" placeholder="0.00" readonly></div>
 <div>
 <label for="ck_kauf_obj">Zuordnung</label>
-<select id="ck_kauf_obj" class="unitSelectOptions"></select>
+<select id="ck_kauf_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_kauf_objCustomBox')"></select>
+<div id="ck_kauf_objCustomBox" class="custom-input-box"><input type="text" id="ck_kauf_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
 </div>
 </div>
 <button type="button" onclick="addChecklistItem('Smartphone Anschaffung Anteil', 'ck_kauf_val', 'ck_kauf_obj', 'Telekommunikation / Handy')">In Steuerbericht übernehmen</button>
 </div>
 
 <div class="checklist-item" data-title="Kontoführungsgebühren">
-<div class="checklist-header">3. Kontoführungsgebühren (Mietkonto)</div>
+<div class="checklist-header">4. Kontoführungsgebühren (Mietkonto)</div>
 <div class="checklist-sub">Anerkannter Richtwert der Finanzämter: ca. 16,00 € pro Jahr.</div>
 <div class="flex-row">
 <div>
 <label for="ck_konto_typ">Abrechnungsart</label>
-<select id="ck_konto_typ" onchange="toggleKontoInput()">
+<select id="ck_konto_typ" onchange="toggleKontoInput(); checkCustomOption(this, 'ck_konto_typCustomBox');">
 <option value="pauschale">Pauschale nutzen (16,00 €)</option>
 <option value="custom">Tatsächliche Kosten eintragen</option>
+<option value="CUSTOM">✏️ Freie Texteingabe / Eigener Text...</option>
 </select>
+<div id="ck_konto_typCustomBox" class="custom-input-box"><input type="text" id="ck_konto_typCustom" placeholder="Eigene Abrechnungsart bezeichnen"></div>
 </div>
 <div><label for="ck_konto_val">Betrag (€)</label><input type="number" step="0.01" id="ck_konto_val" value="16.00" disabled></div>
 <div>
 <label for="ck_konto_obj">Zuordnung</label>
-<select id="ck_konto_obj" class="unitSelectOptions"></select>
+<select id="ck_konto_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_konto_objCustomBox')"></select>
+<div id="ck_konto_objCustomBox" class="custom-input-box"><input type="text" id="ck_konto_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
 </div>
 </div>
 <button type="button" onclick="addChecklistItem('Kontoführungsgebühren', 'ck_konto_val', 'ck_konto_obj', 'Verwaltung / Büro')">In Steuerbericht übernehmen</button>
 </div>
 
 <div class="checklist-item" data-title="Büromaterial &amp; Porto">
-<div class="checklist-header">4. Büromaterial &amp; Porto</div>
+<div class="checklist-header">5. Büromaterial &amp; Porto</div>
 <div class="checklist-sub">Porto, Briefumschläge, Schreibwaren, Ordner.</div>
 <div class="flex-row">
 <div>
 <label for="ck_buero_typ">Abrechnungsart</label>
-<select id="ck_buero_typ" onchange="toggleBueroInput()">
+<select id="ck_buero_typ" onchange="toggleBueroInput(); checkCustomOption(this, 'ck_buero_typCustomBox');">
 <option value="pauschale">Pauschale nutzen (20,00 €)</option>
 <option value="custom">Tatsächliche Kosten eintragen</option>
+<option value="CUSTOM">✏️ Freie Texteingabe / Eigener Text...</option>
 </select>
+<div id="ck_buero_typCustomBox" class="custom-input-box"><input type="text" id="ck_buero_typCustom" placeholder="Eigene Abrechnungsart bezeichnen"></div>
 </div>
 <div><label for="ck_buero_val">Betrag (€)</label><input type="number" step="0.01" id="ck_buero_val" value="20.00" disabled></div>
 <div>
 <label for="ck_buero_obj">Zuordnung</label>
-<select id="ck_buero_obj" class="unitSelectOptions"></select>
+<select id="ck_buero_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_buero_objCustomBox')"></select>
+<div id="ck_buero_objCustomBox" class="custom-input-box"><input type="text" id="ck_buero_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
 </div>
 </div>
 <button type="button" onclick="addChecklistItem('Büromaterial &amp; Porto', 'ck_buero_val', 'ck_buero_obj', 'Verwaltung / Büro')">In Steuerbericht übernehmen</button>
 </div>
 
 <div class="checklist-item" data-title="Homeoffice Verwaltungspauschale">
-<div class="checklist-header">5. Arbeitszimmer / Verwaltung zu Hause (Tagespauschale)</div>
-<div class="checklist-sub">6,00 € pro Tag für Verwaltungsarbeiten (deckt auch Strom &amp; Heim-Internet ab).</div>
+<div class="checklist-header">6. Arbeitszimmer / Verwaltung zu Hause (Tagespauschale)</div>
+<div class="checklist-sub">6,00 € pro Tag für intensive Verwaltungsarbeiten (Strom &amp; Raumnutzung).</div>
 <div class="flex-row">
 <div><label for="ck_ho_tage">Anzahl Verwaltungstage im Jahr</label><input type="number" id="ck_ho_tage" value="10" oninput="calcHomeoffice()"></div>
 <div><label for="ck_ho_val">Berechneter Betrag (6,00 € / Tag)</label><input type="number" step="0.01" id="ck_ho_val" value="60.00" readonly></div>
 <div>
 <label for="ck_ho_obj">Zuordnung</label>
-<select id="ck_ho_obj" class="unitSelectOptions"></select>
+<select id="ck_ho_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_ho_objCustomBox')"></select>
+<div id="ck_ho_objCustomBox" class="custom-input-box"><input type="text" id="ck_ho_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
 </div>
 </div>
 <button type="button" onclick="addChecklistItem('Homeoffice Verwaltungspauschale', 'ck_ho_val', 'ck_ho_obj', 'Verwaltung / Büro')">In Steuerbericht übernehmen</button>
 </div>
 
 <div class="checklist-item" data-title="Gebäude-AfA">
-<div class="checklist-header">6. Gebäude-Abschreibung (AfA)</div>
+<div class="checklist-header">7. Gebäude-Abschreibung (AfA)</div>
 <div class="checklist-sub">Jährlicher AfA-Betrag (wird oben automatisch berechnet oder kann manuell überschrieben werden).</div>
 <div class="flex-row">
 <div><label for="ck_afa_val">Jahres-AfA (€)</label><input type="number" step="0.01" id="ck_afa_val" placeholder="z. B. 4500.00"></div>
 <div>
 <label for="ck_afa_obj">Zuordnung</label>
-<select id="ck_afa_obj" class="unitSelectOptions"></select>
+<select id="ck_afa_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_afa_objCustomBox')"></select>
+<div id="ck_afa_objCustomBox" class="custom-input-box"><input type="text" id="ck_afa_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
 </div>
 </div>
 <button type="button" onclick="addChecklistItem('Gebäude-AfA', 'ck_afa_val', 'ck_afa_obj', 'AfA / Abschreibung')">In Steuerbericht übernehmen</button>
 </div>
+
+<!-- NEU: FREIER INDIVIDUELLER CHECKLISTEN-POSTEN -->
+<div class="checklist-item" data-title="Freier individueller Posten">
+<div class="checklist-header">8. Eigener / Freier Pauschal- &amp; Verwaltungsposten</div>
+<div class="checklist-sub">Erfasse eine beliebige eigene Pauschale, Fachliteratur, Werkzeuge oder sonstige individuelle Kosten.</div>
+<div class="flex-row">
+<div><label for="ck_custom_title">Bezeichnung des Postens</label><input type="text" id="ck_custom_title" placeholder="z. B. Vermieter-Software / Fachliteratur"></div>
+<div><label for="ck_custom_kat">Steuer-Kategorie</label>
+  <select id="ck_custom_kat" onchange="checkCustomOption(this, 'ck_custom_katCustomBox')">
+    <option value="Verwaltung / Büro">Verwaltung / Büro</option>
+    <option value="Sonstiges">Sonstiges</option>
+    <option value="FeWo Ausstattung">FeWo Ausstattung</option>
+    <option value="Material / Baumarkt">Material / Baumarkt</option>
+    <option value="CUSTOM">✏️ Freie Texteingabe / Eigener Text...</option>
+  </select>
+  <div id="ck_custom_katCustomBox" class="custom-input-box"><input type="text" id="ck_custom_katCustom" placeholder="Freie Kategorie eingeben"></div>
+</div>
+<div><label for="ck_custom_val">Absetzbarer Betrag (€)</label><input type="number" step="0.01" id="ck_custom_val" placeholder="50.00"></div>
+<div>
+<label for="ck_custom_obj">Zuordnung</label>
+<select id="ck_custom_obj" class="unitSelectOptions" onchange="checkCustomOption(this, 'ck_custom_objCustomBox')"></select>
+<div id="ck_custom_objCustomBox" class="custom-input-box"><input type="text" id="ck_custom_objCustom" placeholder="Eigene Zuordnung eingeben"></div>
+</div>
+</div>
+<button type="button" onclick="addCustomChecklistItem()">In Steuerbericht übernehmen</button>
+</div>
+
 </div>
 
 <!-- 4. NEBENKOSTEN-MANAGER & ABRECHNUNG -->
@@ -614,15 +683,18 @@ Absetzbarer Betrag: 0.00 €
 <div><label for="nkDatum">Datum / Jahr</label><input type="date" id="nkDatum" required></div>
 <div>
 <label for="nkZuordnung">Zuordnung / Verteilschlüssel</label>
-<select id="nkZuordnung" class="unitSelectOptions">
+<select id="nkZuordnung" class="unitSelectOptions" onchange="checkCustomOption(this, 'nkZuordnungCustomBox')">
 </select>
+<div id="nkZuordnungCustomBox" class="custom-input-box">
+  <input type="text" id="nkZuordnungCustom" placeholder="Eigene Zuordnung eingeben">
+</div>
 </div>
 </div>
 
 <div class="flex-row">
 <div>
 <label for="nkKategorie">Kategorie / Art der Kosten</label>
-<select id="nkKategorie" onchange="autoFillDienstleister()">
+<select id="nkKategorie" onchange="autoFillDienstleister(); checkCustomOption(this, 'nkKategorieCustomBox');">
 <option value="Stromkosten">Stromkosten (Zwischenzähler)</option>
 <option value="Brunata">Brunata Abrechnung (Einzelbogen Anlage)</option>
 <option value="Müll">Müll</option>
@@ -633,7 +705,11 @@ Absetzbarer Betrag: 0.00 €
 <option value="Rauchmelder-Wartung">Rauchmelder-Wartung</option>
 <option value="Heizung-Wartung">Heizung-Wartung</option>
 <option value="Sonstige Handwerker / Dienstleistung">Sonstige Handwerker / Dienstleistung</option>
+<option value="CUSTOM">✏️ Freie Texteingabe / Eigener Text...</option>
 </select>
+<div id="nkKategorieCustomBox" class="custom-input-box">
+  <input type="text" id="nkKategorieCustom" placeholder="Freie Kostenart eintragen">
+</div>
 </div>
 <div><label for="nkGeschaeft">Rechnungssteller / Dienstleister</label><input type="text" id="nkGeschaeft" placeholder="z. B. Stadtwerke / Dienstleister" required></div>
 </div>
@@ -733,8 +809,11 @@ Absetzbarer Betrag: 0.00 €
 <div class="flex-row">
 <div>
 <label for="vZuordnung">Zuordnung / Wohnung</label>
-<select id="vZuordnung" class="unitSelectOnlyUnits">
+<select id="vZuordnung" class="unitSelectOnlyUnits" onchange="checkCustomOption(this, 'vZuordnungCustomBox')">
 </select>
+<div id="vZuordnungCustomBox" class="custom-input-box">
+  <input type="text" id="vZuordnungCustom" placeholder="Eigene Wohnung / Einheit bezeichnen">
+</div>
 </div>
 <div><label for="vName">Mieter Name / Bezeichnung</label><input type="text" id="vName" placeholder="z. B. Max Mustermann" required></div>
 </div>
@@ -844,7 +923,7 @@ In den oben genannten Betriebskosten sind folgende absetzbare Lohn- und Arbeitsk
 <!-- MODAL FÜR NEUES/BEARBEITETES OBJEKT -->
 <div id="objectModal" class="modal">
   <div class="modal-content">
-    <h2 id="modalTitle">Neues Mietobjekt anlegen</h2>
+    <h2 id="modalTitle">Neues Mietobjekt / FeWo anlegen</h2>
     <form id="objectForm">
       <input type="hidden" id="objId">
      
@@ -883,8 +962,8 @@ In den oben genannten Betriebskosten sind folgende absetzbare Lohn- und Arbeitsk
 
 <script>
 // INDEXEDDB ENGINE
-const DB_NAME = "SteuerAppDB_Multi_FeWo";
-const DB_VERSION = 3;
+const DB_NAME = "SteuerAppDB_Multi_FeWo_V5";
+const DB_VERSION = 5;
 let db;
 
 // CONSTANTS FOR DEFAULTS
@@ -953,6 +1032,30 @@ function clearDB() {
     request.onsuccess = () => resolve();
     request.onerror = (e) => reject(e);
   });
+}
+
+// FREIE TEXTEINGABE HELPER
+function checkCustomOption(selectEl, customBoxId) {
+  const box = document.getElementById(customBoxId);
+  if (box) {
+    if (selectEl.value === 'CUSTOM') {
+      box.style.display = 'block';
+      const input = box.querySelector('input');
+      if (input) input.focus();
+    } else {
+      box.style.display = 'none';
+    }
+  }
+}
+
+function getSelectedValueOrCustom(selectId, customInputId) {
+  const selectEl = document.getElementById(selectId);
+  if (!selectEl) return '';
+  if (selectEl.value === 'CUSTOM') {
+    const customInp = document.getElementById(customInputId);
+    return customInp ? customInp.value.trim() : '';
+  }
+  return selectEl.value;
 }
 
 // GLOBALE VARIABLEN
@@ -1063,6 +1166,12 @@ function updateDynamicUIForActiveObject() {
       select.appendChild(opt);
     });
 
+    // Custom Option Hinzufügen
+    const optCustom = document.createElement('option');
+    optCustom.value = 'CUSTOM';
+    optCustom.innerText = '✏️ Freie Texteingabe / Eigener Bereich...';
+    select.appendChild(optCustom);
+
     if (currentVal) select.value = currentVal;
   });
 
@@ -1077,6 +1186,13 @@ function updateDynamicUIForActiveObject() {
       opt.innerText = `${e.name} (${e.qm} m²)`;
       select.appendChild(opt);
     });
+
+    // Custom Option Hinzufügen
+    const optCustom = document.createElement('option');
+    optCustom.value = 'CUSTOM';
+    optCustom.innerText = '✏️ Freie Texteingabe / Eigene Einheit...';
+    select.appendChild(optCustom);
+
     if (currentVal) select.value = currentVal;
   });
 
@@ -1128,6 +1244,12 @@ function updateDynamicUIForActiveObject() {
   });
 }
 
+function calcInternet() {
+  const monat = parseFloat(document.getElementById('ck_net_monat').value) || 0;
+  const prozent = parseFloat(document.getElementById('ck_net_prozent').value) || 0;
+  document.getElementById('ck_net_val').value = ((monat * 12) * (prozent / 100)).toFixed(2);
+}
+
 function calcFeWoNachtCount() {
   const an = document.getElementById('fwAnreise').value;
   const ab = document.getElementById('fwAbreise').value;
@@ -1142,7 +1264,8 @@ function calcFeWoNachtCount() {
 
 document.getElementById('fewoBuchungForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  const belegungArt = document.getElementById('fwEigennutzung').value;
+  const belegungArt = getSelectedValueOrCustom('fwEigennutzung', 'fwEigennutzungCustom');
+  const einheitVal = getSelectedValueOrCustom('fwEinheit', 'fwEinheitCustom');
   const miete = parseFloat(document.getElementById('fwMiete').value) || 0;
   const reinigung = parseFloat(document.getElementById('fwEndreinigung').value) || 0;
   const kurtaxe = parseFloat(document.getElementById('fwKurbeitrag').value) || 0;
@@ -1151,7 +1274,7 @@ document.getElementById('fewoBuchungForm').addEventListener('submit', (e) => {
   const newBuchung = {
     id: crypto.randomUUID(),
     gast: document.getElementById('fwGast').value.trim(),
-    einheit: document.getElementById('fwEinheit').value,
+    einheit: einheitVal,
     anreise: document.getElementById('fwAnreise').value,
     abreise: document.getElementById('fwAbreise').value,
     naechte: parseInt(document.getElementById('fwNaechte').value) || 0,
@@ -1169,7 +1292,7 @@ document.getElementById('fewoBuchungForm').addEventListener('submit', (e) => {
     belege.push({
       id: crypto.randomUUID(),
       datum: document.getElementById('fwAnreise').value,
-      zuordnung: document.getElementById('fwEinheit').value,
+      zuordnung: einheitVal,
       kategorie: "FeWo Portalgebühren",
       geschaeft: document.getElementById('fwGast').value.trim(),
       betrag: gebuehr.toFixed(2),
@@ -1618,7 +1741,8 @@ document.getElementById('belegForm').addEventListener('submit', (e) => {
 
   const fileInput = document.getElementById('bDatei');
   const file = fileInput.files[0];
-  const kat = document.getElementById('bKategorie').value;
+  const kat = getSelectedValueOrCustom('bKategorie', 'bKategorieCustom');
+  const zuordnungVal = getSelectedValueOrCustom('bZuordnung', 'bZuordnungCustom');
   const jahre = kat.includes('Modernisierung') ? parseInt(document.getElementById('bVerteilungJahre').value) || 1 : 1;
   const gesamtBetrag = parseFloat(document.getElementById('bBetrag').value) || 0;
   const jahresAnteil = (gesamtBetrag / jahre).toFixed(2);
@@ -1627,7 +1751,7 @@ document.getElementById('belegForm').addEventListener('submit', (e) => {
     belege.push({
       id: crypto.randomUUID(),
       datum: document.getElementById('bDatum').value,
-      zuordnung: document.getElementById('bZuordnung').value,
+      zuordnung: zuordnungVal,
       kategorie: kat,
       geschaeft: document.getElementById('bGeschaeft').value,
       betrag: gesamtBetrag.toFixed(2),
@@ -1643,6 +1767,10 @@ document.getElementById('belegForm').addEventListener('submit', (e) => {
     e.target.reset();
     toggleKategorieDetails();
     document.getElementById('sanierungEmpfehlung').style.display = 'none';
+   
+    // Hide Custom Boxes Reset
+    document.querySelectorAll('.custom-input-box').forEach(b => b.style.display = 'none');
+   
     updateDateInputsForYear();
     submitBtn.disabled = false;
   };
@@ -1661,7 +1789,8 @@ document.getElementById('nkForm').addEventListener('submit', (e) => {
 
   const fileInput = document.getElementById('nkDatei');
   const file = fileInput.files[0];
-  const kat = document.getElementById('nkKategorie').value;
+  const kat = getSelectedValueOrCustom('nkKategorie', 'nkKategorieCustom');
+  const zuordnungVal = getSelectedValueOrCustom('nkZuordnung', 'nkZuordnungCustom');
 
   let zaehlerNr = document.getElementById('nkZaehlerNr').value;
   let zaehlerAlt = document.getElementById('nkZaehlerAlt').value;
@@ -1674,7 +1803,7 @@ document.getElementById('nkForm').addEventListener('submit', (e) => {
     nebenkosten.push({
       id: crypto.randomUUID(),
       datum: document.getElementById('nkDatum').value,
-      zuordnung: document.getElementById('nkZuordnung').value,
+      zuordnung: zuordnungVal,
       kategorie: kat,
       geschaeft: document.getElementById('nkGeschaeft').value,
       betrag: parseFloat(document.getElementById('nkBetrag').value).toFixed(2),
@@ -1693,6 +1822,9 @@ document.getElementById('nkForm').addEventListener('submit', (e) => {
     e.target.reset();
     document.getElementById('nkLohnBetrag').value = '';
     document.getElementById('nkMaterialBetrag').value = '';
+   
+    document.querySelectorAll('.custom-input-box').forEach(b => b.style.display = 'none');
+
     updateDateInputsForYear();
     autoFillDienstleister();
     submitBtn.disabled = false;
@@ -1978,7 +2110,7 @@ function calcHomeoffice() {
 
 function addChecklistItem(title, valInputId, objSelectId, kategorie) {
   const betrag = parseFloat(document.getElementById(valInputId).value);
-  const zuordnung = document.getElementById(objSelectId).value;
+  const zuordnung = getSelectedValueOrCustom(objSelectId, objSelectId + 'Custom');
   const selectedYearVal = document.getElementById('selectedYear').value;
   const yearForRecord = isTestMode ? `${currentYear}` : selectedYearVal;
 
@@ -2002,12 +2134,45 @@ function addChecklistItem(title, valInputId, objSelectId, kategorie) {
   alert(`"${title}" (${betrag.toFixed(2)} €) wurde übernommen!`);
 }
 
+function addCustomChecklistItem() {
+  const title = document.getElementById('ck_custom_title').value.trim() || 'Freier Posten';
+  const kat = getSelectedValueOrCustom('ck_custom_kat', 'ck_custom_katCustom') || 'Verwaltung / Büro';
+  const betrag = parseFloat(document.getElementById('ck_custom_val').value);
+  const zuordnung = getSelectedValueOrCustom('ck_custom_obj', 'ck_custom_objCustom');
+  const selectedYearVal = document.getElementById('selectedYear').value;
+  const yearForRecord = isTestMode ? `${currentYear}` : selectedYearVal;
+
+  if (!betrag || betrag <= 0) {
+    alert("Bitte gib einen gültigen Betrag ein.");
+    return;
+  }
+
+  belege.push({
+    id: crypto.randomUUID(),
+    datum: `${yearForRecord}-12-31`,
+    zuordnung: zuordnung,
+    kategorie: kat,
+    geschaeft: "Checkliste / Individueller Betrag",
+    betrag: betrag.toFixed(2),
+    grund: title
+  });
+
+  saveData();
+  updateTabellen();
+ 
+  document.getElementById('ck_custom_title').value = '';
+  document.getElementById('ck_custom_val').value = '';
+  document.querySelectorAll('.custom-input-box').forEach(b => b.style.display = 'none');
+ 
+  alert(`"${title}" (${betrag.toFixed(2)} €) wurde in den Steuerbericht übernommen!`);
+}
+
 document.getElementById('vertragForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const submitBtn = document.getElementById('vSubmit');
   submitBtn.disabled = true;
 
-  const zuordnungVal = document.getElementById('vZuordnung').value;
+  const zuordnungVal = getSelectedValueOrCustom('vZuordnung', 'vZuordnungCustom');
   const nameVal = document.getElementById('vName').value.trim();
   const adresseVal = document.getElementById('vAdresse').value.trim() || getActiveObjekt().adresse;
   const kaltmieteVal = parseFloat(document.getElementById('vKaltmiete').value) || 0;
@@ -2052,6 +2217,7 @@ document.getElementById('vertragForm').addEventListener('submit', (e) => {
     e.target.reset();
     document.getElementById('vMietbeginn').valueAsDate = new Date();
     document.getElementById('vLeerstandTage').value = '0';
+    document.querySelectorAll('.custom-input-box').forEach(b => b.style.display = 'none');
     submitBtn.disabled = false;
     alert(`Mietvertrag für ${nameVal} (${zuordnungVal}) wurde erfolgreich gespeichert!`);
   };
@@ -2228,7 +2394,8 @@ function updateTabellen() {
         sumMiete += m; sumRein += r; sumKur += k; sumProv += p;
 
         let artBadge = b.art === 'eigen' ? '<span class="fewo-badge" style="background:var(--warning);">Eigen</span>' :
-                       b.art === 'instandhaltung' ? '<span class="fewo-badge" style="background:var(--danger);">Renovierung</span>' : '';
+                       b.art === 'instandhaltung' ? '<span class="fewo-badge" style="background:var(--danger);">Renovierung</span>' :
+                       (b.art !== 'vermietung' ? `<span class="fewo-badge" style="background:var(--purple);">${escapeHtml(b.art)}</span>` : '');
 
         fwHtml += `
         <tr>
